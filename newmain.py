@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QGraphicsScene,
     QGraphicsPixmapItem,
-    QMessageBox
+    QMessageBox,
 )
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtCore import Qt
@@ -16,10 +16,11 @@ from functions import (
     pipline_choice,
     data_process,
     processed_spectral,
-    fwhm_heatmap
+    fwhm_heatmap,
 )
 import os
 import numpy as np
+
 
 class MyMainWindow(QMainWindow):
     def __init__(self):
@@ -34,8 +35,16 @@ class MyMainWindow(QMainWindow):
         self.processed_data = []
         self.processed_datanpy = None
         self.setup_ui()
-        
-        self.processed_x, self.processed_y, self.rawaxis, self.rawpeak, self.proaxis, self.propeak, self.fitpeak = None, None, None, None, None, None, None
+
+        (
+            self.processed_x,
+            self.processed_y,
+            self.rawaxis,
+            self.rawpeak,
+            self.proaxis,
+            self.propeak,
+            self.fitpeak,
+        ) = (None, None, None, None, None, None, None)
 
     def setup_ui(self):
         self.ui.Fileselectbutton.clicked.connect(self.select_file)
@@ -61,7 +70,9 @@ class MyMainWindow(QMainWindow):
                 ynum,
                 axis,
                 self.rawdata,
-            ) = data_load(file_path)  # 使用 self.rawdata
+            ) = data_load(
+                file_path
+            )  # 使用 self.rawdata
 
             self.ui.DataRowsCols.setText(f"data contains {xnum}(x)*{ynum}(y) points")
             self.ui.SelectedFileBrowser.setText(f"Selected File: {file_name}")
@@ -72,7 +83,6 @@ class MyMainWindow(QMainWindow):
             self.ui.XList_2.clear()
             self.ui.YList.clear()
             self.ui.YList_2.clear()
-            
 
             for value in axis:
                 # 添加项目
@@ -99,11 +109,11 @@ class MyMainWindow(QMainWindow):
 
     def show_rawdata_map(self, current=None, previous=None):
         if current is None and self.ui.AxisList.count() > 0:
-        # 如果没有选定项，并且 AxisList 中有项目，则选择第一个项
+            # 如果没有选定项，并且 AxisList 中有项目，则选择第一个项
             current = self.ui.AxisList.item(0)
 
-        if current is not None and self.rawdata is not None:  
-        # 其余代码保持不变
+        if current is not None and self.rawdata is not None:
+            # 其余代码保持不变
             selected_value = float(current.text())
 
             # 调用 rawdata_map 函数保存图像
@@ -140,7 +150,7 @@ class MyMainWindow(QMainWindow):
             rawdata_spectral(x, y, self.rawdata)
 
             # 显示 rawdata_spectral.png 在 RawdataSpec 中
-            save_path = os.path.join(os.getcwd(), 'Figures', 'rawdata_spectral.png')
+            save_path = os.path.join(os.getcwd(), "Figures", "rawdata_spectral.png")
             image = QImage(save_path)
             pixmap = QPixmap.fromImage(image)
             item = QGraphicsPixmapItem(pixmap)
@@ -151,7 +161,7 @@ class MyMainWindow(QMainWindow):
 
             # 设置 Scene 到 QGraphicsView
             self.ui.RawdataSpec.setScene(scene)
-            
+
             # 自动适应视图大小
             # self.ui.RawdataSpec.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
@@ -159,19 +169,35 @@ class MyMainWindow(QMainWindow):
 
             # 设置 RawmapPeak 标签的文本
             self.ui.RawXYPosition.setText(
-                f"<html><head/><body><p><span style=\" font-weight:700; color:#ff0000;\">Current X: </span><span style=\" font-weight:700; color:#000000;\">{x}</span></p><p><span style=\" font-weight:700; color:#ff0000;\">Current Y: </span><span style=\" font-weight:700; color:#000000;\">{y}</span></p></body></html>"
+                f'<html><head/><body><p><span style=" font-weight:700; color:#ff0000;">Current X: </span><span style=" font-weight:700; color:#000000;">{x}</span></p><p><span style=" font-weight:700; color:#ff0000;">Current Y: </span><span style=" font-weight:700; color:#000000;">{y}</span></p></body></html>'
             )
 
     def begin_processing(self):
         # 获取用户选择的参数
-        choice_crop, choice_cosmic, choice_baseline, choice_norm, choice_denoise, peak_min, peak_max = self.get_processing_options()
+        (
+            choice_crop,
+            choice_cosmic,
+            choice_baseline,
+            choice_norm,
+            choice_denoise,
+            peak_min,
+            peak_max,
+        ) = self.get_processing_options()
 
         # 检查用户输入的 Cropmin 和 Cropmax
         if not self.check_crop_inputs(choice_crop, peak_min, peak_max):
             return
 
         # 运行 Pipeline
-        pipe = self.run_pipeline(choice_crop, peak_min, peak_max, choice_cosmic, choice_baseline, choice_norm, choice_denoise)
+        pipe = self.run_pipeline(
+            choice_crop,
+            peak_min,
+            peak_max,
+            choice_cosmic,
+            choice_baseline,
+            choice_norm,
+            choice_denoise,
+        )
 
         # 处理数据
         if pipe is not None:
@@ -201,18 +227,45 @@ class MyMainWindow(QMainWindow):
         peak_min = self.ui.Cropmin.toPlainText()
         peak_max = self.ui.Cropmax.toPlainText()
 
-        return choice_crop, choice_cosmic, choice_baseline, choice_norm, choice_denoise, peak_min, peak_max
+        return (
+            choice_crop,
+            choice_cosmic,
+            choice_baseline,
+            choice_norm,
+            choice_denoise,
+            peak_min,
+            peak_max,
+        )
 
     def check_crop_inputs(self, choice_crop, peak_min, peak_max):
         # 检查用户选择了 CropOrNot 时是否输入了 Cropmin 和 Cropmax
         if choice_crop and (not peak_min or not peak_max):
-            QMessageBox.warning(self, 'Warning', 'Please input your wanted cropping peak min and max')
+            QMessageBox.warning(
+                self, "Warning", "Please input your wanted cropping peak min and max"
+            )
             return False
         return True
 
-    def run_pipeline(self, choice_crop, peak_min, peak_max, choice_cosmic, choice_baseline, choice_norm, choice_denoise):
+    def run_pipeline(
+        self,
+        choice_crop,
+        peak_min,
+        peak_max,
+        choice_cosmic,
+        choice_baseline,
+        choice_norm,
+        choice_denoise,
+    ):
         # 调用 functions.py 中的 pipline_choice 函数
-        return pipline_choice(choice_crop, peak_min, peak_max, choice_cosmic, choice_baseline, choice_norm, choice_denoise)
+        return pipline_choice(
+            choice_crop,
+            peak_min,
+            peak_max,
+            choice_cosmic,
+            choice_baseline,
+            choice_norm,
+            choice_denoise,
+        )
 
     def process_data(self, pipe):
         # 运行数据处理
@@ -235,10 +288,10 @@ class MyMainWindow(QMainWindow):
 
     def create_figures_folder(self):
         # 获取 Figures 文件夹的路径
-        figures_folder = os.path.join(os.getcwd(), 'Figures')
+        figures_folder = os.path.join(os.getcwd(), "Figures")
 
         # 在 Figures 文件夹中创建 processed 文件夹
-        processed_folder = os.path.join(figures_folder, 'processed')
+        processed_folder = os.path.join(figures_folder, "processed")
         os.makedirs(processed_folder, exist_ok=True)
 
     def display_fwhm_image(self):
@@ -266,10 +319,8 @@ class MyMainWindow(QMainWindow):
 
         # 获取选定的 X 和 Y 值
         return float(x_item.text()), float(y_item.text())
-    
-    
-    def display_spectral_image(self):
 
+    def display_spectral_image(self):
         selected_x = self.ui.XList_2.currentItem()
         selected_y = self.ui.YList_2.currentItem()
 
@@ -279,9 +330,17 @@ class MyMainWindow(QMainWindow):
             selected_y = float(y_item.text())
 
             # 直接调用显示函数
-            
+
             # 将选定的 X 和 Y 值传入 processed_spectral 函数
-            spectral_image_path = processed_spectral(selected_x, selected_y, self.processed_coord, self.rawaxis, self.proaxis, self.propeak, self.fitpeak)
+            spectral_image_path = processed_spectral(
+                selected_x,
+                selected_y,
+                self.processed_coord,
+                self.rawaxis,
+                self.proaxis,
+                self.propeak,
+                self.fitpeak,
+            )
 
             # 显示 processed_spectral 图像在 ProSpectral QGraphicsView 中
             spectral_image = QImage(spectral_image_path)
@@ -291,6 +350,7 @@ class MyMainWindow(QMainWindow):
             spectral_scene.addItem(spectral_item)
             self.ui.ProSpectral.setScene(spectral_scene)
             self.ui.ProSpectral.show()
+
 
 if __name__ == "__main__":
     app = QApplication([])
