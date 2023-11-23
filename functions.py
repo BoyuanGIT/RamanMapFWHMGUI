@@ -22,7 +22,6 @@ def data_load(filename):
 
     return x, y, unique_x, unique_y, xnum, ynum, axis, rawdata
 
-
 def rawdata_heatmap(selected_value, rawdata):
     # 寻找与 selected_value 近似相等的值在 rawdata[3:, 0] 中的位置
     indices = np.where(np.isclose(rawdata[3:, 0].astype(float), selected_value, atol=0.5))[0]
