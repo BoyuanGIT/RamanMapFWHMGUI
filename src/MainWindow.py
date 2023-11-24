@@ -14,7 +14,7 @@ from functions import data_load, rawdata_heatmap, rawdata_spectral, pipline_choi
 import os
 
 
-class MyMainWindow(QMainWindow):
+class FWHMWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = Ui_RamanFWHM()
@@ -238,9 +238,3 @@ class MyMainWindow(QMainWindow):
         spectral_scene.addItem(spectral_item)
         self.ui.ProSpectral.setScene(spectral_scene)
         self.ui.ProSpectral.show()
-
-if __name__ == "__main__":
-    app = QApplication([])
-    window = MyMainWindow()
-    window.show()
-    app.exec()
