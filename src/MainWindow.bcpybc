@@ -10,7 +10,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtCore import Qt
 from Ui_RamanFWHM import Ui_RamanFWHM
-import functions as fc
 from functions import data_load, rawdata_heatmap, rawdata_spectral, pipline_choice, data_process, processed_spectral, fwhm_heatmap
 import os
 
@@ -20,8 +19,18 @@ class FWHMWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_RamanFWHM()
         self.ui.setupUi(self)
+        self.rawdata = None  # 初始化为 None
+        self.x = None
+        self.y = None
+        self.unique_x = None
+        self.unique_y = None
+        self.processed_data = []
+        self.processed_datanpy = None
         self.setup_ui()
-
+        
+        self.processed_x, self.processed_y, self.rawaxis, self.rawpeak, self.proaxis, self.propeak, self.fitpeak = None, None, None, None, None, None, None
+        
+        
     def setup_ui(self):
         self.ui.Fileselectbutton.clicked.connect(self.select_file)
         self.ui.AxisList.currentItemChanged.connect(self.show_rawdata_map)
