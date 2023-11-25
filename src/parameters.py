@@ -6,10 +6,9 @@ class Ramandata:
         self.x = None
         self.y = None
         self.axis = None
-        self.data = None
-        self.xnum = None
-        self.ynum = None
-        self.user_id = 0
+        self.rawdata = None  # 原始表格数据所有
+        self.RMrawdata = None  # 原始数据rpy加载
+        self.RMprodata = None  # 处理完数据rpy加载
 
 
 class ProcessingOptions:
@@ -22,9 +21,3 @@ class ProcessingOptions:
         self.peak_min = 0
         self.peak_max = 100
         # ... 其他处理选项
-
-# 创建全局参数对象
-
-
-rdata = Ramandata()
-pipe_options = ProcessingOptions()

@@ -10,23 +10,26 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtCore import Qt
 from Ui_RamanFWHM import Ui_RamanFWHM
-import functions as fc
-from functions import data_load, rawdata_heatmap, rawdata_spectral, pipline_choice, data_process, processed_spectral, fwhm_heatmap
+import src.functions as func
+import src.dataprocess as dtp
 import os
-
+import src.parameters as params
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class FWHMWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = Ui_RamanFWHM()
+        self.Rdata = params.Ramandata()
+        self.Choices = params.ProcessingOptions()
         self.ui.setupUi(self)
         self.setup_ui()
 
     def setup_ui(self):
         self.ui.Fileselectbutton.clicked.connect(self.select_file)
-        self.ui.AxisList.currentItemChanged.connect(self.show_rawdata_map)
-        self.ui.XList.currentItemChanged.connect(self.show_rawdata_spectral)
-        self.ui.YList.currentItemChanged.connect(self.show_rawdata_spectral)
+        self.ui.AxisList.currentItemChanged.connect(self.update_rawmap)
+        self.ui.XList.currentItemChanged.connect(self.update_rawspec)
+        self.ui.YList.currentItemChanged.connect(self.update_rawspec)
         self.ui.Begin_Pro.clicked.connect(self.begin_processing)
         self.ui.XList_2.currentItemChanged.connect(self.begin_processing)
         self.ui.YList_2.currentItemChanged.connect(self.begin_processing)
@@ -37,18 +40,15 @@ class FWHMWindow(QMainWindow):
 
         if file_path:
             file_name = os.path.basename(file_path)
-            (
-                self.x,
-                self.y,
-                self.unique_x,
-                self.unique_y,
-                xnum,
-                ynum,
-                axis,
-                self.rawdata,
-            ) = data_load(file_path)  # 使用 self.rawdata
-
-            self.ui.DataRowsCols.setText(f"data contains {xnum}(x)*{ynum}(y) points")
+            loaded_data = dtp.data_load(file_path)
+            self.Rdata.RMrawdata = loaded_data['RMrawdata']  # rpy格式原始数据
+            self.Rdata.x = loaded_data['xreshape']  # 符合数据形状的x
+            self.Rdata.y = loaded_data['yreshape']  # 符合数据形状的y
+            self.Rdata.xlist = loaded_data['xlist']  # 唯一值x列表
+            self.Rdata.ylist = loaded_data['ylist']  # 唯一值y列表
+            self.ui.DataRowsCols.setText(
+                f"data contains {len(self.Rdata.xlist)}(x)*{len(self.Rdata.ylist)}(y) points"
+            )
             self.ui.SelectedFileBrowser.setText(f"Selected File: {file_name}")
 
             # 清空 AxisList、XList、YList 中的所有项目
@@ -57,18 +57,17 @@ class FWHMWindow(QMainWindow):
             self.ui.XList_2.clear()
             self.ui.YList.clear()
             self.ui.YList_2.clear()
-            
 
-            for value in axis:
+            for value in self.Rdata.RMrawdata.spectral_axis:
                 # 添加项目
                 self.ui.AxisList.addItem(str(value))
 
-            for value in self.unique_x:
+            for value in self.Rdata.xlist:
                 # 添加项目
                 self.ui.XList.addItem(str(value))
                 self.ui.XList_2.addItem(str(value))
 
-            for value in self.unique_y:
+            for value in self.Rdata.ylist:
                 # 添加项目
                 self.ui.YList.addItem(str(value))
                 self.ui.YList_2.addItem(str(value))
@@ -77,74 +76,60 @@ class FWHMWindow(QMainWindow):
             self.ui.AxisList.setCurrentRow(0)
             self.ui.XList.setCurrentRow(0)
             self.ui.YList.setCurrentRow(0)
-
-            # 调用 show_rawdata_spectral
-            self.show_rawdata_spectral()
-            self.show_rawdata_map()
-
-    def show_rawdata_map(self, current=None, previous=None):
-        if current is None and self.ui.AxisList.count() > 0:
-        # 如果没有选定项，并且 AxisList 中有项目，则选择第一个项
-            current = self.ui.AxisList.item(0)
-
-        if current is not None and self.rawdata is not None:  
-        # 其余代码保持不变
-            selected_value = float(current.text())
-
-            # 调用 rawdata_map 函数保存图像
-            save_path = rawdata_heatmap(selected_value, self.rawdata)
-
-            # 清空 QGraphicsView 中的内容
+            # 清空 Rawmap 中的内容
             self.ui.Rawmap.setScene(None)
+            self.ui.RawdataSpec.setScene(None)
 
-            # 读取图像文件并在 QGraphicsView 中显示
-            image = QImage(save_path)
-            pixmap = QPixmap.fromImage(image)
-            item = QGraphicsPixmapItem(pixmap)
+            self.update_rawmap()
+            self.update_rawspec()
 
-            # 创建 Scene 并添加 Item
-            scene = QGraphicsScene(self)
-            scene.addItem(item)
+    def update_rawmap(self):
+        # 清空 Rawmap 中的内容
+        self.ui.Rawmap.setScene(None)
 
-            # 设置 Scene 到 QGraphicsView
-            self.ui.Rawmap.setScene(scene)
-            self.ui.Rawmap.show()
-
-            # 设置 RawmapPeak 标签的文本
-            self.ui.RawmapPeak.setText(
-                f"<html><b><font color='red'>Current Peak:</font></b> {selected_value}</html>"
+        # 显示Rawmap
+        self.canvas_rawmap = FigureCanvas(
+            func.rawdata_heatmap(
+                float(self.ui.AxisList.currentItem().text()),
+                self.Rdata
             )
+        )
+        scene_rawmap = QGraphicsScene(self)
+        scene_rawmap.addWidget(self.canvas_rawmap)
 
-    def show_rawdata_spectral(self):
-        x_item = self.ui.XList.currentItem()
-        y_item = self.ui.YList.currentItem()
+        self.ui.Rawmap.setScene(scene_rawmap)
+        self.ui.Rawmap.show()
 
-        if x_item is not None and y_item is not None:
-            x = float(x_item.text())
-            y = float(y_item.text())
-            rawdata_spectral(x, y, self.rawdata)
+        # 设置 RawmapPeak 标签的文本
+        self.ui.RawmapPeak.setText(
+            f"<html><b><font color='red'>Current Peak:</font></b> {self.ui.AxisList.currentItem()}</html>"
+        )
 
-            # 显示 rawdata_spectral.png 在 RawdataSpec 中
-            save_path = os.path.join(os.getcwd(), 'Figures', 'rawdata_spectral.png')
-            image = QImage(save_path)
-            pixmap = QPixmap.fromImage(image)
-            item = QGraphicsPixmapItem(pixmap)
+    def update_rawspec(self):
+        # 清空 RawdataSpec 中的内容
+        self.ui.RawdataSpec.setScene(None)
 
-            # 创建 Scene 并添加 Item
-            scene = QGraphicsScene(self)
-            scene.addItem(item)
+        # 获取当前选中的 XList 项目
+        current_item_x = self.ui.XList.currentItem()
+        current_item_y = self.ui.YList.currentItem()
 
-            # 设置 Scene 到 QGraphicsView
-            self.ui.RawdataSpec.setScene(scene)
-            
-            # 自动适应视图大小
-            # self.ui.RawdataSpec.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-
+        if current_item_x and current_item_y:
+            # 显示Rawspec
+            self.canvas_rawspec = FigureCanvas(
+                func.rawdata_spectral(
+                    float(current_item_x.text()),
+                    float(current_item_y.text()),
+                    self.Rdata
+                )
+            )
+            scene_rawspec = QGraphicsScene(self)
+            scene_rawspec.addWidget(self.canvas_rawspec)
+            self.ui.RawdataSpec.setScene(scene_rawspec)
             self.ui.RawdataSpec.show()
 
-            # 设置 RawmapPeak 标签的文本
+            # 设置 RawXYPosition 标签的文本
             self.ui.RawXYPosition.setText(
-                f"<html><head/><body><p><span style=\" font-weight:700; color:#ff0000;\">Current X: </span><span style=\" font-weight:700; color:#000000;\">{x}</span></p><p><span style=\" font-weight:700; color:#ff0000;\">Current Y: </span><span style=\" font-weight:700; color:#000000;\">{y}</span></p></body></html>"
+                f"<html><head/><body><p><span style=\" font-weight:700; color:#ff0000;\">Current X: </span><span style=\" font-weight:700; color:#000000;\">{current_item_x.text()}</span></p><p><span style=\" font-weight:700; color:#ff0000;\">Current Y: </span><span style=\" font-weight:700; color:#000000;\">{current_item_y.text()}</span></p></body></html>"
             )
 
     def begin_processing(self):

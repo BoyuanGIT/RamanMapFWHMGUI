@@ -8,40 +8,16 @@ from matplotlib.cm import ScalarMappable
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 
-#读取数据函数
-def data_load(filename):
-    rawdata = pd.read_csv(filename, header=None).to_numpy() #读取文件并转换为numpy数组
-    xnum = len(set(rawdata[1, 1:])) #计算x坐标的数量
-    ynum = len(set(rawdata[2, 1:])) #计算y坐标的数量
-    axis = rawdata[3:,0] #获取峰位置并存入表
-    x = rawdata[1, 1:].astype(float) #读取x轴所有坐标并转换为浮点数
-    y = rawdata[2, 1:].astype(float) #读取y轴所有坐标并转换为浮点数
-    unique_x = np.unique(x) #获取x轴唯一坐标
-    unique_y = np.unique(y) #获取y轴唯一坐标
 
-
-    return x, y, unique_x, unique_y, xnum, ynum, axis, rawdata
-
-def rawdata_heatmap(selected_value, rawdata):
-    # 寻找与 selected_value 近似相等的值在 rawdata[3:, 0] 中的位置
-    indices = np.where(np.isclose(rawdata[3:, 0].astype(float), selected_value, atol=0.5))[0]
-
-    row = indices[0]  # 使用第一个匹配的索引
-
-    # 提取 x, y, z 数据
-    x = rawdata[1, 1:].astype(float)
-    
-    y = rawdata[2, 1:].astype(float)
-    
-    unique_x, index_x = np.unique(x, return_index=True)
-    unique_y, index_y = np.unique(y, return_index=True)
-    lenx = len(unique_x)
-    leny = len(unique_y)
-    z = rawdata[row + 3, 1:].reshape(leny, lenx).astype(float)
-
+def rawdata_heatmap(selected_value, Rdata):
     # 创建热图
     fig, ax = plt.subplots()
-    im = ax.imshow(z, cmap='YlOrRd', aspect='auto', extent=[min(x), max(x), min(y), max(y)])
+    im = ax.imshow(
+        Rdata.RMrawdata.band(selected_value).astype(float), cmap='YlOrRd',
+        aspect='auto',
+        extent=[min(Rdata.xlist), max(Rdata.xlist),
+                min(Rdata.ylist), max(Rdata.ylist)]
+    )
 
     # 设置 colorbar 标签
     cbar = fig.colorbar(im, ax=ax, label='Intensity')
@@ -51,65 +27,41 @@ def rawdata_heatmap(selected_value, rawdata):
 
     # 隐藏图形标题
     ax.set_title('')
-
     ax.set_xlabel('X-axis')
     ax.set_ylabel('Y-axis')
 
-    # 创建 Figures 文件夹路径
-    figures_folder = os.path.join(os.getcwd(), 'Figures')
-    os.makedirs(figures_folder, exist_ok=True)  # 如果文件夹不存在，创建文件夹
+    return fig
 
-    # 构建图像文件的路径
-    save_path = os.path.join(figures_folder, 'rawdataheatmap.png')
 
-    # 保存图像到文件
-    fig.savefig(save_path, bbox_inches='tight')
-    plt.close(fig)  # 关闭图形，防止显示图形窗口
+def rawdata_spectral(selected_x, selected_y, Rdata):
+    # 寻找选择的点在数据中的位置
+    print(Rdata.x)
+    print(Rdata.y)
+    index = np.where((Rdata.x == selected_x) &
+                     (Rdata.y == selected_y))
 
-    return save_path
-
-import os
-import matplotlib.pyplot as plt
-
-def rawdata_spectral(x, y, rawdata):
-    # 寻找 x 在 rawdata[1, 1:] 中的位置
-    x_indices = [i for i, val in enumerate(rawdata[1, 1:]) if float(val) == x]
-
-    # 寻找 y 在 rawdata[2, 1:] 中的位置
-    y_indices = [i for i, val in enumerate(rawdata[2, 1:]) if float(val) == y]
-
-    # 获取同时具有 x, y 值的列的索引
-    common_indices = list(set(x_indices) & set(y_indices))
-
-    if not common_indices:
-        print(f"No data found for x={x} and y={y}")
+    if not index[0].size or not index[1].size:
+        print(f"No data found for x={selected_x} and y={selected_y}")
         return
 
-    col = common_indices[0] + 1  # 加1是因为列的索引从1开始，而数组索引从0开始
-
-    # 提取 x, y 数据
-    x_values = rawdata[3:, 0].astype(float)
-    y_values = rawdata[3:, col].astype(float)
-
     # 创建折线图
-    fig, ax = plt.subplots(figsize=(491 / 80, 311 / 80))
-    ax.plot(x_values, y_values, label='')
+    fig, ax = plt.subplots()
+    ax.plot(Rdata.RMrawdata[index[0][0], index[1][0]].spectral_axis,
+            Rdata.RMrawdata[index[0][0], index[1][0]].spectral_data,
+            label='')
     ax.legend()
 
-    # 创建 Figures 文件夹路径
-    figures_folder = os.path.join(os.getcwd(), 'Figures')
-    os.makedirs(figures_folder, exist_ok=True)  # 如果文件夹不存在，创建文件夹
+    return fig
 
-    # 构建图像文件的路径
-    save_path = os.path.join(figures_folder, 'rawdata_spectral.png')
 
-    # 保存图像到文件
-    fig.savefig(save_path, bbox_inches='tight')
-    plt.close(fig)  # 关闭图形，防止显示图形窗口
-
-    return save_path
-
-def pipline_choice(choice_crop, peak_min, peak_max, choice_cosmic, choice_baseline, choice_norm, choice_denoise):
+def pipline_choice(
+        choice_crop,
+        peak_min,
+        peak_max,
+        choice_cosmic,
+        choice_baseline,
+        choice_norm,
+        choice_denoise):
     # 初始化 Pipeline
     pipe = rpy.preprocessing.Pipeline([])
 
@@ -135,19 +87,28 @@ def pipline_choice(choice_crop, peak_min, peak_max, choice_cosmic, choice_baseli
         pipe.append(rpy.preprocessing.denoise.Gaussian())
 
     # 如果没有选择任何一个框，返回空值
-    if not any([choice_crop, choice_cosmic, choice_baseline, choice_norm, choice_denoise]):
+    if not any(
+        [choice_crop,
+         choice_cosmic,
+         choice_baseline,
+         choice_norm,
+         choice_denoise]):
         return None
 
     return pipe
 
+
 model = VoigtModel()
 params = model.make_params(amplitude=1, center=965, sigma=1, gamma=1)
+
+
 def vogitfit(preprocessed_data):
     data = np.column_stack((preprocessed_data.spectral_axis, preprocessed_data.spectral_data))
     x = data[:, 0]
     y = data[:, 1]
     result = model.fit(y, params, x=x)
     return result
+
 
 def data_process(rawdata,pipe):
     

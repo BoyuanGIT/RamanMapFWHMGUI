@@ -46,8 +46,20 @@
       <x>200</x>
       <y>80</y>
       <width>761</width>
-      <height>541</height>
+      <height>481</height>
      </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="verticalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
+    <property name="horizontalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
     </property>
    </widget>
    <widget class="QLabel" name="RawmapLabel">
@@ -128,17 +140,23 @@
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>640</y>
+      <y>580</y>
       <width>761</width>
-      <height>361</height>
+      <height>421</height>
      </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
     </property>
    </widget>
    <widget class="QLabel" name="RawSpectralLabel">
     <property name="geometry">
      <rect>
       <x>200</x>
-      <y>640</y>
+      <y>580</y>
       <width>131</width>
       <height>16</height>
      </rect>
@@ -353,8 +371,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
    <widget class="QLabel" name="RawmapPeak">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>600</y>
+      <x>200</x>
+      <y>540</y>
       <width>471</width>
       <height>16</height>
      </rect>
