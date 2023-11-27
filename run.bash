@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 安装依赖库
+# install packages
 pip install -r requirements.txt
 
-# 运行 main.py
+# run main.py
 python main.py
