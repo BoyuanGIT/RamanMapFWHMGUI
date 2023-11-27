@@ -1,5 +1,3 @@
-# Form implementation generated from reading ui file 'e:\WinLibrary\Documents\OneDrive\学术研究\2022.1_Durango标样退火实验_重离子辐照\Raman\Code\RamanSoftware\RamanFWHM.ui'
-#
 # Created by: PyQt6 UI code generator 6.4.2
 #
 # WARNING: Any manual changes made to this file will be lost when pyuic6 is
