@@ -14,14 +14,15 @@ def data_load(filename):
 
         # 处理数据
         axis = rawdata[3:, 0].astype(float)
+        spectral_data = rawdata[3:, 1:].astype(float)
         x = rawdata[1, 1:].astype(float)
         y = rawdata[2, 1:].astype(float)
         xlist = np.unique(x)
         ylist = np.unique(y)
         xreshape = x.reshape(len(ylist), len(xlist))
         yreshape = y.reshape(len(ylist), len(xlist))
-        RMrawdata = rpy.SpectralImage(
-             rawdata[3:, 1:].T.reshape(len(ylist), len(xlist), len(axis)),
+        RMrawdata = rpy.SpectralContainer(
+             spectral_data.T.reshape(len(ylist), len(xlist), len(axis)),
              axis
              )
 
@@ -70,6 +71,7 @@ def preprocess(options, Rdata):
         pipe.append(rpy.preprocessing.denoise.Gaussian())
 
     # 如果没有选择任何一个框，返回空值
+
     if not any([
         options.choice_crop,
         options.choice_cosmic,
@@ -82,55 +84,47 @@ def preprocess(options, Rdata):
     return pipe.apply(Rdata.RMrawdata)
 
 
-# def fwhm_cal(Rdata):
-#     rmdata = Rdata.RMprodata
-#     tobefitdata = np.zeros((len(Rdata.ylist),len(Rdata.xlist)), dtype= object)
-#     tobefitaxis = tobefitdata
-#     for i in range(len(Rdata.ylist)):
-#         for j in range(len(Rdata.xlist)):
-#             tobefitdata[i, j] = rmdata.spectral_data[i, j, :]
-#             tobefitaxis[i, j] = rmdata.spectral_axis
-
-#     model = VoigtModel()
-#     params = model.make_params(amplitude=1, center=965, sigma=1, gamma=1)
-
-#     fitresult_list = []  # 使用列表存储拟合结果
-
-#     for i in range(len(Rdata.ylist)):
-#         row_results = []  # 存储一行的拟合结果
-#         for j in range(len(Rdata.xlist)):
-#             fitresult = model.fit(
-#                 tobefitdata[i, j], params, x=tobefitaxis[i, j])
-#             row_results.append(fitresult)
-#         fitresult_list.append(row_results)
-#     return fitresult_list
-
-from concurrent.futures import ThreadPoolExecutor
-
-def fwhm_cal(Rdata):
+def fwhm_cal(Rdata, ui):
     rmdata = Rdata.RMprodata
-    tobefitdata = np.zeros((len(Rdata.ylist), len(Rdata.xlist)), dtype=object)
-    tobefitaxis = tobefitdata
+    tobefitdata = np.zeros((len(Rdata.ylist), len(Rdata.xlist)),
+                           dtype=object)
+    tobefitaxis = np.zeros((len(Rdata.ylist), len(Rdata.xlist)),
+                           dtype=object)
     for i in range(len(Rdata.ylist)):
         for j in range(len(Rdata.xlist)):
             tobefitdata[i, j] = rmdata.spectral_data[i, j, :]
             tobefitaxis[i, j] = rmdata.spectral_axis
+
+    total_steps = len(Rdata.ylist) * len(Rdata.xlist)
+    current_step = 0
 
     model = VoigtModel()
     params = model.make_params(amplitude=1, center=965, sigma=1, gamma=1)
 
     fitresult_list = []  # 使用列表存储拟合结果
 
-    def fit_row(i):
+    ui.progressBar.show()
+
+    for i in range(len(Rdata.ylist)):
         row_results = []  # 存储一行的拟合结果
         for j in range(len(Rdata.xlist)):
-            fitresult = model.fit(tobefitdata[i, j], params, x=tobefitaxis[i, j])
+            fitresult = model.fit(tobefitdata[i, j],
+                                  params,
+                                  x=tobefitaxis[i, j])
             row_results.append(fitresult)
-        return row_results
+            current_step += 1
+            progress_percentage = int((current_step / total_steps) * 100)
+            ui.progressBar.setValue(progress_percentage)
+        fitresult_list.append(row_results)
+        current_step += 1
+        progress_percentage = int((current_step / total_steps) * 100)
+        ui.progressBar.setValue(progress_percentage)
 
-    # 使用 ThreadPoolExecutor 进行并行计算
-    with ThreadPoolExecutor() as executor:
-        fitresult_list = list(executor.map(fit_row, range(len(Rdata.ylist))))
+    ui.progressBar.hide()
 
-    return fitresult_list
+    fwhm_values = [[fitresult.params['fwhm'].value for fitresult in row] for row in fitresult_list]
+    fwhm_array = np.array(fwhm_values)
+    fwhm_err = [[fitresult.params['fwhm'].stderr for fitresult in row] for row in fitresult_list]
+    fwhm_err_array = np.array(fwhm_err)
 
+    return fitresult_list, fwhm_array, fwhm_err_array

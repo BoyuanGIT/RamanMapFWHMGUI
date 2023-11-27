@@ -1,16 +1,20 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='RamanFWHMAnalyzer',
+    name='RamanFWHM',
     version='1.0',
-    packages=find_packages(where='src'),
-    package_dir={'': 'src'},
+    packages=find_packages(),
     install_requires=[
-        # 添加其他依赖项
+        'PyQt6',
+        'numpy',
+        'matplotlib',
+        'pandas',
+        'ramanspy',
+        'lmfit',
     ],
     entry_points={
         'console_scripts': [
-            'run_raman_fwhm = main:main',
+            'your-app-name = your_package_name.setup:main',
         ],
     },
 )

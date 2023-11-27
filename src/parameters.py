@@ -12,6 +12,8 @@ class Ramandata:
         self.RMrawdata = None  # 原始数据rpy加载
         self.RMprodata = None  # 处理完数据rpy加载
         self.fit_result = None
+        self.fwhm = None
+        self.fwhm_err = None
 
 
 class ProcessingOptions:
