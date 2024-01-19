@@ -312,8 +312,21 @@ class FWHMWindow(QMainWindow):
                 # 添加 X、Y、FWHM、FWHM Error 数据
                 self.ui.FWHMTable.setItem(index, 0, QTableWidgetItem(str(self.Rdata.x[i, j])))
                 self.ui.FWHMTable.setItem(index, 1, QTableWidgetItem(str(self.Rdata.y[i, j])))
-                self.ui.FWHMTable.setItem(index, 2, QTableWidgetItem(f'{np.around(self.Rdata.fwhm[i, j], decimals=6)}'))
-                self.ui.FWHMTable.setItem(index, 3, QTableWidgetItem(f'{np.around(self.Rdata.fwhm_err[i, j], decimals=6)}'))
+                # self.ui.FWHMTable.setItem(index, 2, QTableWidgetItem(f'{np.around(self.Rdata.fwhm[i, j], decimals=6)}'))
+
+                if self.Rdata.fwhm_err[i, j] is not None:
+                    fwhm_value = np.around(self.Rdata.fwhm_err[i, j], decimals=6)
+                    self.ui.FWHMTable.setItem(index, 2, QTableWidgetItem(f'{np.around(self.Rdata.fwhm[i, j], decimals=6)}'))
+                    self.ui.FWHMTable.setItem(index, 3, QTableWidgetItem(f'{fwhm_value}'))
+                else:
+                    # Handle the case when the value is None, you might want to set a default or skip this entry
+                    self.ui.FWHMTable.setItem(index, 2, QTableWidgetItem("No fit Result"))
+                    self.ui.FWHMTable.setItem(index, 3, QTableWidgetItem("No fit Result"))
+                    print(f"Warning: FWHM value at index ({i}, {j}) is None.")
+                    # You can set a default value or decide how to handle the case based on your requirements
+
+
+                # self.ui.FWHMTable.setItem(index, 3, QTableWidgetItem(f'{np.around(self.Rdata.fwhm_err[i, j], decimals=6)}'))
 
                 index += 1
 

@@ -99,7 +99,7 @@ def fwhm_cal(Rdata, ui):
     current_step = 0
 
     model = VoigtModel()
-    params = model.make_params(amplitude=1, center=965, sigma=1, gamma=1)
+    params = model.make_params(amplitude=1, center=0, sigma=1, gamma=1)
 
     fitresult_list = []  # 使用列表存储拟合结果
 
