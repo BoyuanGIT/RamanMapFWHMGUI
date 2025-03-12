@@ -7,3 +7,4 @@ if __name__ == "__main__":
     window = FWHMWindow()
     window.show()
     app.exec()
+

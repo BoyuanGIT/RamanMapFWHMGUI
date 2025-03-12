@@ -20,3 +20,4 @@ if %errorlevel% neq 0 (
 
 echo Application has finished running.
 pause
+
